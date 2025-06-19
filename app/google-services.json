@@ -1,0 +1,68 @@
+{
+  "project_info": {
+    "project_number": "9847590645",
+    "project_id": "zendalona-cef87",
+    "storage_bucket": "zendalona-cef87.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:9847590645:android:4599ffa13be6bb5cab7fbc",
+        "android_client_info": {
+          "package_name": "com.zendalona.zbluff"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "9847590645-ai6fos8vgii7fp972jogigbuulilar1p.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyClavJxnu6YLjxEYcArHS-NDxFkeGtFxaM"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "9847590645-ai6fos8vgii7fp972jogigbuulilar1p.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:9847590645:android:f75f653ba0b08f08ab7fbc",
+        "android_client_info": {
+          "package_name": "com.zendalona.zmap"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "9847590645-ai6fos8vgii7fp972jogigbuulilar1p.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyClavJxnu6YLjxEYcArHS-NDxFkeGtFxaM"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "9847590645-ai6fos8vgii7fp972jogigbuulilar1p.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
