@@ -155,6 +155,7 @@ public class MainActivity extends AppCompatActivity {
                     .addOnCompleteListener(task -> runOnUiThread(() -> {
                         if (task.isSuccessful()) {
                             String idToken = task.getResult().getToken();
+                            // Send this token to your backend endpoint to exchange for a Firebase Custom Token
                             String jsCode = "javascript:receiveFirebaseToken('" + idToken + "');";
                             webView.evaluateJavascript(jsCode, null);
                         } else {
