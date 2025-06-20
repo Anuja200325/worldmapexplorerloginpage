@@ -34,16 +34,27 @@ dependencies {
     implementation 'androidx.appcompat:appcompat:1.6.1'
     implementation 'com.google.android.material:material:1.9.0'
     implementation 'androidx.constraintlayout:constraintlayout:2.1.4'
-    implementation 'com.google.firebase:firebase-auth-ktx:22.1.2'
-    implementation 'com.google.android.gms:play-services-auth:20.7.0'
-    implementation libs.firebase.auth
-    implementation libs.credentials
+
+    // Firebase Bill of Materials (BoM) - THIS IS CRUCIAL FOR VERSION MANAGEMENT
+    // This ensures all Firebase libraries are compatible versions.
+    implementation platform('com.google.firebase:firebase-bom:33.15.0') // CONFIRM THIS IS THE LATEST STABLE BOM
+
+    // Firebase Authentication (managed by the BOM, no version specified here)
+    implementation 'com.google.firebase:firebase-auth-ktx:22.3.0' // Or the latest stable version >= 22.0.0 // Use KTX if you prefer; it's Java compatible.
+
+    // Google Play Services Auth (for Google Sign-In)
+    // This is typically kept with an explicit version for compatibility reasons.
+    // Version 20.7.0 is shown in your previous build.gradle; 21.0.0 is newer.
+    // Let's stick to 20.7.0 for now, but be aware it might need updating later.
+    implementation 'com.google.android.gms:play-services-auth:20.7.0' // Explicit version here
+
+    // Your other dependencies
+    implementation libs.credentials // Assuming these are defined in your libs.versions.toml
     implementation libs.credentials.play.services.auth
     implementation libs.googleid
     testImplementation 'junit:junit:4.13.2'
     androidTestImplementation 'androidx.test.ext:junit:1.1.5'
     androidTestImplementation 'androidx.test.espresso:espresso-core:3.5.1'
     implementation 'com.github.bumptech.glide:glide:4.16.0'
-    implementation platform('com.google.firebase:firebase-bom:33.15.0')
-    implementation 'com.google.firebase:firebase-analytics'
+    implementation 'com.google.firebase:firebase-analytics' // Managed by the BOM
 }

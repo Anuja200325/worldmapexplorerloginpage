@@ -9,115 +9,171 @@ import androidx.appcompat.app.AppCompatActivity;
 
 import android.content.Intent;
 import android.os.Bundle;
-import android.view.View;
-import android.widget.TextView;
+import android.os.Handler;
+import android.os.Looper;
+import android.webkit.JavascriptInterface;
+import android.webkit.WebSettings;
+import android.webkit.WebView;
+import android.webkit.WebViewClient;
 import android.widget.Toast;
 
-import com.bumptech.glide.Glide;
 import com.google.android.gms.auth.api.signin.GoogleSignIn;
 import com.google.android.gms.auth.api.signin.GoogleSignInAccount;
 import com.google.android.gms.auth.api.signin.GoogleSignInClient;
 import com.google.android.gms.auth.api.signin.GoogleSignInOptions;
-import com.google.android.gms.common.SignInButton;
 import com.google.android.gms.common.api.ApiException;
 import com.google.android.gms.tasks.OnCompleteListener;
 import com.google.android.gms.tasks.Task;
-import com.google.android.material.imageview.ShapeableImageView;
+
 import com.google.firebase.FirebaseApp;
 import com.google.firebase.auth.AuthCredential;
 import com.google.firebase.auth.AuthResult;
 import com.google.firebase.auth.FirebaseAuth;
+import com.google.firebase.auth.FirebaseUser;
 import com.google.firebase.auth.GoogleAuthProvider;
-import com.google.android.gms.tasks.OnSuccessListener; // This is also missing, noticed it in your signOut code!
-import com.google.android.material.button.MaterialButton; // <--- Add this line
-import java.util.Objects;
+import com.google.firebase.auth.GetTokenResult;
 
 public class MainActivity extends AppCompatActivity {
     FirebaseAuth auth;
     GoogleSignInClient googleSignInClient;
-    ShapeableImageView imageView;
-    TextView name, mail;
-    private final ActivityResultLauncher<Intent> activityResultLauncher = registerForActivityResult(new ActivityResultContracts.StartActivityForResult(), new ActivityResultCallback<ActivityResult>() {
-        @Override
-        public void onActivityResult(ActivityResult result) {
-            if (result.getResultCode() == RESULT_OK) {
-                Task<GoogleSignInAccount> accountTask = GoogleSignIn.getSignedInAccountFromIntent(result.getData());
-                try {
-                    GoogleSignInAccount signInAccount = accountTask.getResult(ApiException.class);
-                    AuthCredential authCredential = GoogleAuthProvider.getCredential(signInAccount.getIdToken(), null);
-                    auth.signInWithCredential(authCredential).addOnCompleteListener(new OnCompleteListener<AuthResult>() {
-                        @Override
-                        public void onComplete(@NonNull Task<AuthResult> task) {
-                            if (task.isSuccessful()) {
-                                auth = FirebaseAuth.getInstance();
-                                Glide.with(MainActivity.this).load(Objects.requireNonNull(auth.getCurrentUser()).getPhotoUrl()).into(imageView);
-                                name.setText(auth.getCurrentUser().getDisplayName());
-                                mail.setText(auth.getCurrentUser().getEmail());
-                                Toast.makeText(MainActivity.this, "Signed in successfully!", Toast.LENGTH_SHORT).show();
-                            } else {
-                                Toast.makeText(MainActivity.this, "Failed to sign in: " + task.getException(), Toast.LENGTH_SHORT).show();
-                            }
+    WebView webView;
+    private FirebaseUser currentUser;
+
+    private static final String WEB_APP_URL = "http://192.168.1.32:3000/";
+
+    // ✅ Updated ActivityResultLauncher with correct Firebase login flow
+    private final ActivityResultLauncher<Intent> activityResultLauncher =
+            registerForActivityResult(new ActivityResultContracts.StartActivityForResult(), result -> {
+                if (result.getResultCode() == RESULT_OK && result.getData() != null) {
+                    Task<GoogleSignInAccount> signInTask = GoogleSignIn.getSignedInAccountFromIntent(result.getData());
+                    try {
+                        GoogleSignInAccount account = signInTask.getResult(ApiException.class);
+                        if (account != null) {
+                            AuthCredential credential = GoogleAuthProvider.getCredential(account.getIdToken(), null);
+                            auth.signInWithCredential(credential)
+                                    .addOnCompleteListener(task -> {
+                                        if (task.isSuccessful()) {
+                                            Toast.makeText(MainActivity.this, "Signed in successfully!", Toast.LENGTH_SHORT).show();
+                                            currentUser = auth.getCurrentUser();
+                                            pushTokenToWebView();
+                                        } else {
+                                            Toast.makeText(MainActivity.this, "Firebase Sign In Failed: " + task.getException().getMessage(), Toast.LENGTH_SHORT).show();
+                                            currentUser = null;
+                                            pushTokenToWebView();
+                                        }
+                                    });
                         }
-                    });
-                } catch (ApiException e) {
-                    e.printStackTrace();
+                    } catch (ApiException e) {
+                        e.printStackTrace();
+                        Toast.makeText(MainActivity.this, "Google Sign In Failed: " + e.getMessage(), Toast.LENGTH_SHORT).show();
+                        currentUser = null;
+                        pushTokenToWebView();
+                    }
+                } else {
+                    Toast.makeText(MainActivity.this, "Google Sign In Cancelled", Toast.LENGTH_SHORT).show();
+                    currentUser = null;
+                    pushTokenToWebView();
                 }
-            }
+            });
+
+    // JS Interface to expose native functions to WebView
+    public class WebAppInterface {
+        MainActivity mContext;
+
+        WebAppInterface(MainActivity c) {
+            mContext = c;
         }
-    });
+
+        @JavascriptInterface
+        public void showToast(String toast) {
+            new Handler(Looper.getMainLooper()).post(() ->
+                    Toast.makeText(mContext, toast, Toast.LENGTH_SHORT).show());
+        }
+
+        @JavascriptInterface
+        public void startNativeGoogleSignIn() {
+            new Handler(Looper.getMainLooper()).post(() -> {
+                Intent intent = googleSignInClient.getSignInIntent();
+                activityResultLauncher.launch(intent);
+            });
+        }
+
+        @JavascriptInterface
+        public void startNativeGoogleSignOut() {
+            new Handler(Looper.getMainLooper()).post(() -> {
+                FirebaseAuth.getInstance().signOut();
+                googleSignInClient.signOut().addOnCompleteListener(task -> {
+                    Toast.makeText(mContext, "Signed out successfully!", Toast.LENGTH_SHORT).show();
+                    currentUser = null;
+                    pushTokenToWebView();
+                });
+            });
+        }
+    }
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
         FirebaseApp.initializeApp(this);
-        imageView = findViewById(R.id.profileImage);
-        name = findViewById(R.id.nameTV);
-        mail = findViewById(R.id.mailTV);
+        auth = FirebaseAuth.getInstance();
+        currentUser = auth.getCurrentUser();
 
+        // WebView setup
+        webView = findViewById(R.id.webView);
+        webView.setWebViewClient(new WebViewClient() {
+            @Override
+            public void onPageFinished(WebView view, String url) {
+                super.onPageFinished(view, url);
+                pushTokenToWebView();
+            }
+        });
+
+        WebSettings webSettings = webView.getSettings();
+        webSettings.setJavaScriptEnabled(true);
+        webSettings.setDomStorageEnabled(true);
+        webSettings.setLoadWithOverviewMode(true);
+        webSettings.setUseWideViewPort(true);
+        webSettings.setMediaPlaybackRequiresUserGesture(false);
+
+        webView.addJavascriptInterface(new WebAppInterface(this), "Android");
+        webView.loadUrl(WEB_APP_URL);
+
+        // Google Sign-In setup
         GoogleSignInOptions options = new GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN)
-                .requestIdToken(getString(R.string.client_id))
+                .requestIdToken(getString(R.string.client_id)) // <-- Web client ID from Firebase Console
                 .requestEmail()
                 .build();
+
         googleSignInClient = GoogleSignIn.getClient(MainActivity.this, options);
+    }
 
-        auth = FirebaseAuth.getInstance();
-
-        SignInButton signInButton = findViewById(R.id.signIn);
-        signInButton.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View view) {
-                Intent intent = googleSignInClient.getSignInIntent();
-                activityResultLauncher.launch(intent);
-            }
-        });
-
-        MaterialButton signOut = findViewById(R.id.signout);
-        signOut.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View view) {
-                FirebaseAuth.getInstance().addAuthStateListener(new FirebaseAuth.AuthStateListener() {
-                    @Override
-                    public void onAuthStateChanged(@NonNull FirebaseAuth firebaseAuth) {
-                        if (firebaseAuth.getCurrentUser() == null) {
-                            googleSignInClient.signOut().addOnSuccessListener(new OnSuccessListener<Void>() {
-                                @Override
-                                public void onSuccess(Void unused) {
-                                    Toast.makeText(MainActivity.this, "Signed out successfully", Toast.LENGTH_SHORT).show();
-                                    startActivity(new Intent(MainActivity.this, MainActivity.class));
-                                }
-                            });
+    private void pushTokenToWebView() {
+        if (currentUser != null) {
+            currentUser.getIdToken(false)
+                    .addOnCompleteListener(task -> runOnUiThread(() -> {
+                        if (task.isSuccessful()) {
+                            String idToken = task.getResult().getToken();
+                            String jsCode = "javascript:receiveFirebaseToken('" + idToken + "');";
+                            webView.evaluateJavascript(jsCode, null);
+                        } else {
+                            webView.evaluateJavascript("javascript:receiveFirebaseToken(null);", null);
+                            Toast.makeText(MainActivity.this, "Failed to get Firebase token: " + task.getException(), Toast.LENGTH_SHORT).show();
                         }
-                    }
-                });
-                FirebaseAuth.getInstance().signOut();
-            }
-        });
+                    }));
+        } else {
+            runOnUiThread(() ->
+                    webView.evaluateJavascript("javascript:receiveFirebaseToken(null);", null));
+        }
+    }
 
-        if (auth.getCurrentUser() != null) {
-            Glide.with(MainActivity.this).load(Objects.requireNonNull(auth.getCurrentUser()).getPhotoUrl()).into(imageView);
-            name.setText(auth.getCurrentUser().getDisplayName());
-            mail.setText(auth.getCurrentUser().getEmail());
+    @Override
+    public void onBackPressed() {
+        if (webView.canGoBack()) {
+            webView.goBack();
+        } else {
+            super.onBackPressed();
         }
     }
 }

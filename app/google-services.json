@@ -43,6 +43,14 @@
       },
       "oauth_client": [
         {
+          "client_id": "9847590645-5600ldhqlfnpoi329s25mcpg60nn0iop.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.zendalona.zmap",
+            "certificate_hash": "e15607c66d9c671a18512701ac762c80c748bff3"
+          }
+        },
+        {
           "client_id": "9847590645-ai6fos8vgii7fp972jogigbuulilar1p.apps.googleusercontent.com",
           "client_type": 3
         }
