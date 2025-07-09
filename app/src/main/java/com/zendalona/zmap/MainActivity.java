@@ -149,7 +149,25 @@ public class MainActivity extends AppCompatActivity {
         googleSignInClient = GoogleSignIn.getClient(MainActivity.this, options);
     }
 
-    
+    private void pushTokenToWebView() {
+        if (currentUser != null) {
+            currentUser.getIdToken(false)
+                    .addOnCompleteListener(task -> runOnUiThread(() -> {
+                        if (task.isSuccessful()) {
+                            String idToken = task.getResult().getToken();
+                            // Send this token to your backend endpoint to exchange for a Firebase Custom Token
+                            String jsCode = "javascript:receiveFirebaseToken('" + idToken + "');";
+                            webView.evaluateJavascript(jsCode, null);
+                        } else {
+                            webView.evaluateJavascript("javascript:receiveFirebaseToken(null);", null);
+                            Toast.makeText(MainActivity.this, "Failed to get Firebase token: " + task.getException(), Toast.LENGTH_SHORT).show();
+                        }
+                    }));
+        } else {
+            runOnUiThread(() ->
+                    webView.evaluateJavascript("javascript:receiveFirebaseToken(null);", null));
+        }
+    }
 
     @Override
     public void onBackPressed() {
