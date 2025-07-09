@@ -41,7 +41,7 @@ public class MainActivity extends AppCompatActivity {
 
     private static final String WEB_APP_URL = "http://192.168.1.32:3000/";
 
-    // ✅ Updated ActivityResultLauncher with correct Firebase login flow
+
     private final ActivityResultLauncher<Intent> activityResultLauncher =
             registerForActivityResult(new ActivityResultContracts.StartActivityForResult(), result -> {
                 if (result.getResultCode() == RESULT_OK && result.getData() != null) {
@@ -76,7 +76,7 @@ public class MainActivity extends AppCompatActivity {
                 }
             });
 
-    // JS Interface to expose native functions to WebView
+
     public class WebAppInterface {
         MainActivity mContext;
 
